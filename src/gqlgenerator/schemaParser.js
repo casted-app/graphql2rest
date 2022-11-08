@@ -1,4 +1,3 @@
-
 let gqlSchema;
 let depthLimit;
 
@@ -13,39 +12,38 @@ const init = (schema, limit) => {
  * @param duplicateArgCounts map for deduping argument name collisions
  * @param allArgsDict dictionary of all arguments
  */
-const getFieldArgsDict = (
-	field,
-	duplicateArgCounts,
-	allArgsDict = {},
-) => field.args.reduce((o, arg) => {
-	if (arg.name in duplicateArgCounts) {
-		const index = duplicateArgCounts[arg.name] + 1;
-		duplicateArgCounts[arg.name] = index;
-		o[`${arg.name}${index}`] = arg;
-	} else if (allArgsDict[arg.name]) {
-		duplicateArgCounts[arg.name] = 1;
-		o[`${arg.name}1`] = arg;
-	} else {
-		o[arg.name] = arg;
-	}
-	return o;
-}, {});
+const getFieldArgsDict = (field, duplicateArgCounts, allArgsDict = {}) =>
+	field.args.reduce((o, arg) => {
+		if (arg.name in duplicateArgCounts) {
+			const index = duplicateArgCounts[arg.name] + 1;
+			duplicateArgCounts[arg.name] = index;
+			o[`${arg.name}${index}`] = arg;
+		} else if (allArgsDict[arg.name]) {
+			duplicateArgCounts[arg.name] = 1;
+			o[`${arg.name}1`] = arg;
+		} else {
+			o[arg.name] = arg;
+		}
+		return o;
+	}, {});
 
 /**
  * Generate variables string
  * @param dict dictionary of arguments
  */
-const getArgsToVarsStr = dict => Object.entries(dict)
-	.map(([varName, arg]) => `${arg.name}: $${varName}`)
-	.join(', ');
+const getArgsToVarsStr = (dict) =>
+	Object.entries(dict)
+		.map(([varName, arg]) => `${arg.name}: $${varName}`)
+		.join(', ');
 
 /**
  * Generate types string
  * @param dict dictionary of arguments
  */
-const getVarsToTypesStr = dict => Object.entries(dict)
-	.map(([varName, arg]) => `$${varName}: ${arg.type}`)
-	.join(', ');
+const getVarsToTypesStr = (dict) =>
+	Object.entries(dict)
+		.map(([varName, arg]) => `$${varName}: ${arg.type}`)
+		.join(', ');
 
 /**
  * Generate the query for the specified field
@@ -64,30 +62,48 @@ const generateQuery = (
 	argumentsDict = {},
 	duplicateArgCounts = {},
 	crossReferenceKeyList = [], // [`${curParentName}To${curName}Key`]
-	curDepth = 1,
+	curDepth = 1
 ) => {
 	const field = gqlSchema.getType(curParentType).getFields()[curName];
-	const curTypeName = field.type.inspect().replace(/[[\]!]/g, '');
+	const curTypeName = field.type.toString().replace(/[[!\]!]/g, '');
 	const curType = gqlSchema.getType(curTypeName);
 	let queryStr = '';
 	let childQuery = '';
 
 	if (curType.getFields) {
 		const crossReferenceKey = `${curParentName}To${curName}Key`;
-		if (crossReferenceKeyList.indexOf(crossReferenceKey) !== -1 || curDepth > depthLimit) return '';
+		if (
+			crossReferenceKeyList.indexOf(crossReferenceKey) !== -1 ||
+			curDepth > depthLimit
+		)
+			return '';
 		crossReferenceKeyList.push(crossReferenceKey);
 		const childKeys = Object.keys(curType.getFields());
 		childQuery = childKeys
-			.map(cur => generateQuery(cur, curType, curName, argumentsDict, duplicateArgCounts,
-				crossReferenceKeyList, curDepth + 1).queryStr)
-			.filter(cur => cur)
+			.map(
+				(cur) =>
+					generateQuery(
+						cur,
+						curType,
+						curName,
+						argumentsDict,
+						duplicateArgCounts,
+						crossReferenceKeyList,
+						curDepth + 1
+					).queryStr
+			)
+			.filter((cur) => cur)
 			.join('\n');
 	}
 
 	if (!(curType.getFields && !childQuery)) {
 		queryStr = `${'    '.repeat(curDepth)}${field.name}`;
 		if (field.args.length > 0) {
-			const dict = getFieldArgsDict(field, duplicateArgCounts, argumentsDict);
+			const dict = getFieldArgsDict(
+				field,
+				duplicateArgCounts,
+				argumentsDict
+			);
 			Object.assign(argumentsDict, dict);
 			queryStr += `(${getArgsToVarsStr(dict)})`;
 		}
@@ -108,9 +124,19 @@ const generateQuery = (
 				const valueTypeName = types[i];
 				const valueType = gqlSchema.getType(valueTypeName);
 				const unionChildQuery = Object.keys(valueType.getFields())
-					.map(cur => generateQuery(cur, valueType, curName, argumentsDict, duplicateArgCounts,
-						crossReferenceKeyList, curDepth + 2).queryStr)
-					.filter(cur => cur)
+					.map(
+						(cur) =>
+							generateQuery(
+								cur,
+								valueType,
+								curName,
+								argumentsDict,
+								duplicateArgCounts,
+								crossReferenceKeyList,
+								curDepth + 2
+							).queryStr
+					)
+					.filter((cur) => cur)
 					.join('\n');
 				queryStr += `${fragIndent}... on ${valueTypeName} {\n${unionChildQuery}\n${fragIndent}}\n`;
 			}
@@ -119,9 +145,8 @@ const generateQuery = (
 	}
 	return {
 		queryStr,
-		argumentsDict
+		argumentsDict,
 	};
 };
 
 module.exports = { getVarsToTypesStr, generateQuery, init };
-
