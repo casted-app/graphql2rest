@@ -1,25 +1,15 @@
 {
-	"name": "graphql2rest",
-	"version": "0.6.5",
-	"author": "Roy Mor <roy.mor@sisense.com>",
-	"contributors": [
-		"Ray Luxembourg",
-		"Yotam Roth",
-		"Sergei Magera"
-	],
+	"name": "casted-graphql2rest",
+	"version": "0.6.6",
+	"author": {
+		"name": "Casted",
+		"email": "dev@casted.us"
+	},
 	"license": "MIT",
 	"description": "GraphQL to REST converter: automatically generate a RESTful API from your existing GraphQL API",
-	"keywords": [
-		"graphql",
-		"rest",
-		"api",
-		"graphql2rest",
-		"restful",
-		"graphql-to-rest"
-	],
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/sisense/graphql2rest.git"
+		"url": "https://github.com/casted-app/graphql2rest.git"
 	},
 	"main": "./src/index.js",
 	"private": false,
@@ -32,7 +22,7 @@
 		"del": "^5.1.0",
 		"dot-object": "^2.1.2",
 		"express": "~4.16.0",
-		"graphql": "^14.5.8",
+		"graphql": "^16.6.0",
 		"graphql-tag": "^2.10.1",
 		"http-status-codes": "^1.3.0",
 		"jmespath": "^0.15.0",
